@@ -6,11 +6,11 @@ violations with assertions, and measures how much of the protocol a test exercis
 
 | Piece | File | What it does |
 |---|---|---|
-| Shared definitions | `rtl/q_channel_pkg.sv` | State enum, signal decoder, legal-transition table |
-| **SVA checker** | `rtl/q_channel_assertions.sv` | 4 concurrent assertions that flag protocol violations |
-| **Tracker** | `rtl/q_channel_tracker.sv` | Logs every signal change + state transition to a table |
-| **Functional coverage** | `rtl/q_channel_coverage.sv` | Covergroup: toggles, states, transitions, cross |
-| **Testbench** | `tb/tb_top.sv` | Clock/reset, random controller, random device |
+| Shared definitions | `q_channel_pkg.sv` | State enum, signal decoder, legal-transition table |
+| **SVA checker** | `q_channel_assertions.sv` | 4 concurrent assertions that flag protocol violations |
+| **Tracker** | `q_channel_tracker.sv` | Logs every signal change + state transition to a table |
+| **Functional coverage** | `q_channel_coverage.sv` | Covergroup: toggles, states, transitions, cross |
+| **Testbench** | `tb_top.sv` | Clock/reset, random controller, random device |
 
 ## The protocol in one minute
 
@@ -72,7 +72,7 @@ simulator with covergroup support (Questa, VCS, Xcelium).
 
 ## Sample output
 
-`docs/sample_tracker_pass.log` (legal traffic):
+`sample_tracker_pass.log` (legal traffic):
 
 ```
 |       Time | Signal    | New value                 | Direction / Check          |
@@ -83,7 +83,7 @@ simulator with covergroup support (Questa, VCS, Xcelium).
 |     155 ns | QREQn     | 1                         | Controller -> Device       |
 ```
 
-`docs/sample_tracker_bug.log` (`+INJECT_BUG`): the tracker prints
+`sample_tracker_bug.log` (`+INJECT_BUG`): the tracker prints
 `Q_REQUEST -> Q_ILLEGAL  *** ILLEGAL TRANSITION ***` and assertion A1 fires.
 
 ## About the timestamps

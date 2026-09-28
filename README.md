@@ -76,14 +76,29 @@ simulator with covergroup support (Questa, VCS, Xcelium).
 
 ```
 |       Time | Signal    | New value                 | Direction / Check          |
-|     115 ns | QREQn     | 0                         | Controller -> Device       |
-|     115 ns | STATE     | Q_RUN -> Q_REQUEST        | OK                         |
-|     155 ns | QACCEPTn  | 0                         | Device -> Controller       |
-|     155 ns | STATE     | Q_REQUEST -> Q_STOPPED    | OK                         |
+|     125 ns | QREQn     | 0                         | Controller -> Device       |
+|     125 ns | STATE     | Q_RUN -> Q_REQUEST        | OK                         |
+|     135 ns | QACCEPTn  | 0                         | Device -> Controller       |
+|     135 ns | STATE     | Q_REQUEST -> Q_STOPPED    | OK                         |
+|     155 ns | QREQn     | 1                         | Controller -> Device       |
 ```
 
 `docs/sample_tracker_bug.log` (`+INJECT_BUG`): the tracker prints
 `Q_REQUEST -> Q_ILLEGAL  *** ILLEGAL TRANSITION ***` and assertion A1 fires.
+
+## About the timestamps
+
+The tracker (like the assertions) is a **synchronous sampler**: it looks at the signals
+on each rising clock edge. The time it prints is the edge where a new value was first
+*sampled*, which is the value a flop in the design would capture. A signal that changes
+just after edge N appears in the waveform right after edge N, but is logged at edge N+1.
+So log time = waveform time + up to one clock period (10 ns here). That is expected, not a
+delay in the code, and the tracker and the assertions always agree with each other.
+
+The testbench drives every signal with `<= #1`, so stimulus never changes on the clock
+edge itself. Without that, a simulator can treat the drive and the sample as a race
+(Verilator, for example, executes `<=` inside `initial` blocks as blocking, which made
+the tracker log a change one clock earlier than the assertion did).
 
 ## Why no interface?
 

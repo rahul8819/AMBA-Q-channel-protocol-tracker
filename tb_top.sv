@@ -20,12 +20,15 @@ module tb_top;
   logic clk   = 0;
   logic rst_n = 0;
 
+  // NOTE: every testbench drive below uses "<= #1" (1 ns after the clock edge).
+  // This keeps stimulus changes clear of the edge on which the tracker and the
+  // assertions sample, so results are identical on every simulator.
   always #5 clk = ~clk;                       // 100 MHz free-running clock
 
   initial begin
     rst_n = 0;
     repeat (4) @(posedge clk);                // hold reset for 4 cycles
-    rst_n <= 1;
+    rst_n <= #1 1;
   end
 
   // ---------------------------------------------------------------------------
@@ -66,11 +69,11 @@ module tb_top;
     for (int i = 0; i < num_txns; i++) begin
       repeat ($urandom_range(2, 8)) @(posedge clk);   // random idle gap
 
-      qreqn <= 0;                                 // 1) request
+      qreqn <= #1 0;                                 // 1) request
       do @(posedge clk); while (qacceptn && !qdeny);  // wait for answer
 
       repeat ($urandom_range(1, 5)) @(posedge clk);   // stay a while
-      qreqn <= 1;                                 // 2) exit or continue
+      qreqn <= #1 1;                                 // 2) exit or continue
       do @(posedge clk); while (!(qacceptn && !qdeny)); // wait for RUN
     end
 
@@ -97,22 +100,21 @@ module tb_top;
       @(posedge clk);
       if (rst_n) begin
         // random busy/idle hint
-        if ($urandom_range(0, 99) < 20) qactive <= ~qactive;
+        if ($urandom_range(0, 99) < 20) qactive <= #1 ~qactive;
 
         if (!qreqn && qacceptn && !qdeny) begin       // Q_REQUEST
           repeat ($urandom_range(0, 3)) @(posedge clk);           // random latency
           txn_id++;
           if (inject_bug && txn_id == 3) begin                    // illegal: both at once
-            qacceptn <= 0;
-            qdeny    <= 1;
+            {qacceptn, qdeny} <= #1 2'b01;
           end else if ($urandom_range(0, 99) < accept_pct) begin
-            qacceptn <= 0;  accepted_cnt++;                   // accept
+            qacceptn <= #1 0;  accepted_cnt++;                   // accept
           end else begin
-            qdeny    <= 1;  denied_cnt++;                     // deny
+            qdeny    <= #1 1;  denied_cnt++;                     // deny
           end
         end
-        else if (qreqn && !qacceptn) qacceptn <= 1;   // Q_EXIT     -> Q_RUN
-        else if (qreqn &&  qdeny)    qdeny    <= 0;   // Q_CONTINUE -> Q_RUN
+        else if (qreqn && !qacceptn) qacceptn <= #1 1;   // Q_EXIT     -> Q_RUN
+        else if (qreqn &&  qdeny)    qdeny    <= #1 0;   // Q_CONTINUE -> Q_RUN
       end
     end
   end

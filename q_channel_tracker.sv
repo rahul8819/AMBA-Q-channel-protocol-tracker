@@ -11,7 +11,12 @@ module q_channel_tracker
 #(
   parameter string LOG_FILE = "q_channel_tracker.log"
 )(
-  q_channel_if vif
+  input logic clk,
+  input logic rst_n,
+  input logic qreqn,
+  input logic qacceptn,
+  input logic qdeny,
+  input logic qactive
 );
 
   integer   fd;
@@ -39,16 +44,16 @@ module q_channel_tracker
     prev_state = Q_RUN;
   end
 
-  always @(posedge vif.clk) begin
-    if (vif.rst_n) begin
+  always @(posedge clk) begin
+    if (rst_n) begin
       // 1) signal changes + direction of flow
-      check_signal("QREQn",    prev_qreqn,    vif.qreqn,    "Controller -> Device");
-      check_signal("QACCEPTn", prev_qacceptn, vif.qacceptn, "Device -> Controller");
-      check_signal("QDENY",    prev_qdeny,    vif.qdeny,    "Device -> Controller");
-      check_signal("QACTIVE",  prev_qactive,  vif.qactive,  "Device -> Controller");
+      check_signal("QREQn",    prev_qreqn,    qreqn,    "Controller -> Device");
+      check_signal("QACCEPTn", prev_qacceptn, qacceptn, "Device -> Controller");
+      check_signal("QDENY",    prev_qdeny,    qdeny,    "Device -> Controller");
+      check_signal("QACTIVE",  prev_qactive,  qactive,  "Device -> Controller");
 
       // 2) state transition + legality check
-      cur_state = decode(vif.qreqn, vif.qacceptn, vif.qdeny);
+      cur_state = decode(qreqn, qacceptn, qdeny);
       if (cur_state != prev_state) begin
         log_row("STATE", $sformatf("%s -> %s", prev_state.name(), cur_state.name()),
                 is_legal(prev_state, cur_state) ? "OK" : "*** ILLEGAL TRANSITION ***");
@@ -56,8 +61,8 @@ module q_channel_tracker
       end
     end
     // remember values for the next clock
-    prev_qreqn = vif.qreqn;  prev_qacceptn = vif.qacceptn;
-    prev_qdeny = vif.qdeny;  prev_qactive  = vif.qactive;
+    prev_qreqn = qreqn;  prev_qacceptn = qacceptn;
+    prev_qdeny = qdeny;  prev_qactive  = qactive;
   end
 
   final begin

@@ -100,17 +100,6 @@ edge itself. Without that, a simulator can treat the drive and the sample as a r
 (Verilator, for example, executes `<=` inside `initial` blocks as blocking, which made
 the tracker log a change one clock earlier than the assertion did).
 
-## Why no interface?
-
-The protocol has only four wires and there is no UVM environment, so the three
-checkers are plain modules with ports. An `interface` becomes worthwhile once a
-UVM driver/monitor needs a virtual-interface handle. The assertion module can also be
-attached to an existing design without editing it:
-
-```systemverilog
-bind my_dut q_channel_assertions u_q_chk (.clk(clk), .rst_n(rst_n),
-     .qreqn(qreqn), .qacceptn(qacceptn), .qdeny(qdeny), .fail_count());
-```
 
 ## Why the tracker and the assertions both exist
 
@@ -122,3 +111,17 @@ sequence** around it. Together you see *that* it broke and *how the signals got 
 In this testbench the device toggles `QACTIVE` randomly and answers requests randomly.
 A real controller would check `QACTIVE` before requesting and a real device would deny
 when busy; the checkers themselves only watch the wires, so they are unaffected.
+
+
+
+## Why no interface?
+
+The protocol has only four wires and there is no UVM environment, so the three
+checkers are plain modules with ports. An `interface` becomes worthwhile once a
+UVM driver/monitor needs a virtual-interface handle. The assertion module can also be
+attached to an existing design without editing it:
+
+```systemverilog
+bind my_dut q_channel_assertions u_q_chk (.clk(clk), .rst_n(rst_n),
+     .qreqn(qreqn), .qacceptn(qacceptn), .qdeny(qdeny), .fail_count());
+```

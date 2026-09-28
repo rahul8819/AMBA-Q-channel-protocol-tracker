@@ -1,0 +1,19 @@
+[425 ns] %Error: q_channel_assertions.sv:23: Assertion failed in TOP.tb_top.checker_sva.report_fail: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+-Info: rtl/q_channel_assertions.sv:23: Verilog $stop, ignored due to +verilator+error+limit
+[435 ns] %Error: q_channel_assertions.sv:23: Assertion failed in TOP.tb_top.checker_sva.report_fail: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+-Info: rtl/q_channel_assertions.sv:23: Verilog $stop, ignored due to +verilator+error+limit
+[445 ns] %Error: q_channel_assertions.sv:23: Assertion failed in TOP.tb_top.checker_sva.report_fail: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+-Info: rtl/q_channel_assertions.sv:23: Verilog $stop, ignored due to +verilator+error+limit
+[455 ns] %Error: q_channel_assertions.sv:23: Assertion failed in TOP.tb_top.checker_sva.report_fail: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+-Info: rtl/q_channel_assertions.sv:23: Verilog $stop, ignored due to +verilator+error+limit
+[465 ns] %Error: q_channel_assertions.sv:23: Assertion failed in TOP.tb_top.checker_sva.report_fail: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+-Info: rtl/q_channel_assertions.sv:23: Verilog $stop, ignored due to +verilator+error+limit
+[475 ns] %Error: q_channel_assertions.sv:23: Assertion failed in TOP.tb_top.checker_sva.report_fail: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+-Info: rtl/q_channel_assertions.sv:23: Verilog $stop, ignored due to +verilator+error+limit
+--------------------------------------------------
+Requests accepted : 3
+Requests denied   : 2
+SVA failures      : 6
+Result            : FAIL
+--------------------------------------------------
+- tb/tb_top.sv:84: Verilog $finish

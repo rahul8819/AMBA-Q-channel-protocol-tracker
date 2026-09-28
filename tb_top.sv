@@ -29,12 +29,16 @@ module tb_top;
   end
 
   // ---------------------------------------------------------------------------
-  // Interface + monitors
+  // Q-Channel signals + the three passive checkers
   // ---------------------------------------------------------------------------
-  q_channel_if          qif (.clk(clk), .rst_n(rst_n));
-  q_channel_tracker     tracker  (.vif(qif));
+  logic        qreqn, qacceptn, qdeny, qactive;
+  int unsigned sva_fail_count;
+
+  q_channel_assertions checker_sva (.clk, .rst_n, .qreqn, .qacceptn, .qdeny,
+                                    .fail_count(sva_fail_count));
+  q_channel_tracker    tracker     (.clk, .rst_n, .qreqn, .qacceptn, .qdeny, .qactive);
 `ifndef NO_COVERAGE
-  q_channel_coverage    coverage (.vif(qif));
+  q_channel_coverage   coverage    (.clk, .rst_n, .qreqn, .qacceptn, .qdeny, .qactive);
 `endif
 
   // ---------------------------------------------------------------------------
@@ -55,27 +59,27 @@ module tb_top;
   // Dummy power controller: randomly requests low power, then exits/continues
   // ---------------------------------------------------------------------------
   initial begin
-    qif.qreqn = 1;
+    qreqn = 1;
     @(posedge rst_n);
     repeat (2) @(posedge clk);
 
     for (int i = 0; i < num_txns; i++) begin
       repeat ($urandom_range(2, 8)) @(posedge clk);   // random idle gap
 
-      qif.qreqn <= 0;                                 // 1) request
-      do @(posedge clk); while (qif.qacceptn && !qif.qdeny);  // wait for answer
+      qreqn <= 0;                                 // 1) request
+      do @(posedge clk); while (qacceptn && !qdeny);  // wait for answer
 
       repeat ($urandom_range(1, 5)) @(posedge clk);   // stay a while
-      qif.qreqn <= 1;                                 // 2) exit or continue
-      do @(posedge clk); while (!(qif.qacceptn && !qif.qdeny)); // wait for RUN
+      qreqn <= 1;                                 // 2) exit or continue
+      do @(posedge clk); while (!(qacceptn && !qdeny)); // wait for RUN
     end
 
     repeat (5) @(posedge clk);
     $display("--------------------------------------------------");
     $display("Requests accepted : %0d", accepted_cnt);
     $display("Requests denied   : %0d", denied_cnt);
-    $display("SVA failures      : %0d", qif.sva_fail_count);
-    $display("Result            : %s", (qif.sva_fail_count == 0) ? "PASS" : "FAIL");
+    $display("SVA failures      : %0d", sva_fail_count);
+    $display("Result            : %s", (sva_fail_count == 0) ? "PASS" : "FAIL");
     $display("--------------------------------------------------");
     $finish;
   end
@@ -86,29 +90,29 @@ module tb_top;
   int txn_id = 0;
 
   initial begin
-    qif.qacceptn = 1;
-    qif.qdeny    = 0;
-    qif.qactive  = 0;
+    qacceptn = 1;
+    qdeny    = 0;
+    qactive  = 0;
     forever begin
       @(posedge clk);
       if (rst_n) begin
         // random busy/idle hint
-        if ($urandom_range(0, 99) < 20) qif.qactive <= ~qif.qactive;
+        if ($urandom_range(0, 99) < 20) qactive <= ~qactive;
 
-        if (!qif.qreqn && qif.qacceptn && !qif.qdeny) begin       // Q_REQUEST
+        if (!qreqn && qacceptn && !qdeny) begin       // Q_REQUEST
           repeat ($urandom_range(0, 3)) @(posedge clk);           // random latency
           txn_id++;
           if (inject_bug && txn_id == 3) begin                    // illegal: both at once
-            qif.qacceptn <= 0;
-            qif.qdeny    <= 1;
+            qacceptn <= 0;
+            qdeny    <= 1;
           end else if ($urandom_range(0, 99) < accept_pct) begin
-            qif.qacceptn <= 0;  accepted_cnt++;                   // accept
+            qacceptn <= 0;  accepted_cnt++;                   // accept
           end else begin
-            qif.qdeny    <= 1;  denied_cnt++;                     // deny
+            qdeny    <= 1;  denied_cnt++;                     // deny
           end
         end
-        else if (qif.qreqn && !qif.qacceptn) qif.qacceptn <= 1;   // Q_EXIT     -> Q_RUN
-        else if (qif.qreqn &&  qif.qdeny)    qif.qdeny    <= 0;   // Q_CONTINUE -> Q_RUN
+        else if (qreqn && !qacceptn) qacceptn <= 1;   // Q_EXIT     -> Q_RUN
+        else if (qreqn &&  qdeny)    qdeny    <= 0;   // Q_CONTINUE -> Q_RUN
       end
     end
   end

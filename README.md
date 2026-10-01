@@ -2,8 +2,8 @@
 
 A SystemVerilog verification project for the **AMBA Q-Channel** low-power
 handshake. It replaces waveform-hunting with a readable log, catches protocol
-violations with assertions, measures how much of the protocol a test exercised,
-and cross-checks its own log against the raw waveform.
+violations with assertions, and measures how much of the protocol a test
+exercised with a functional covergroup.
 
 | Piece | File | What it does |
 |---|---|---|
@@ -12,7 +12,8 @@ and cross-checks its own log against the raw waveform.
 | **Tracker** | `rtl/q_channel_tracker.sv` | Logs every signal change + state transition to a table |
 | **Functional coverage** | `rtl/q_channel_coverage.sv` | Covergroup: toggles, states, transitions, cross |
 | **Testbench** | `tb/tb_top.sv` | Clock/reset, clocked controller FSM, clocked device FSM |
-| **Independent checker** | `scripts/verify_against_vcd.py` | Re-derives ground truth from a VCD and diffs it against the log |
+
+Verified with **Xilinx Vivado 2024.1 (xsim)**.
 
 ## The protocol in one minute
 
@@ -57,74 +58,105 @@ Anything else is illegal.
 - **Scenarios**: request→accept and request→deny (allowing wait cycles in `Q_REQUEST`)
 - **Cross**: outcome (accepted / denied) × device busy / idle (`QACTIVE`)
 
-## Running
+## Running in Vivado (xsim)
 
-```bash
-make verilator             # build + run (open-source; coverage module is skipped)
-make bug                    # device violates the protocol once -> assertions + tracker catch it
-make verify                 # build with waveform tracing, then cross-check the log against the VCD
-make questa|vcs|xrun         # commercial flow, adds functional coverage report
-```
+The five files in `rtl/` and `tb/` are simulation-only (they use `$display`, SVA, and
+covergroups, which are not synthesizable), so add them to the **simulation sources**
+fileset, not the default design-sources fileset:
 
-Testbench options: `+NUM_TXNS=<n>`, `+ACCEPT_PCT=<n>`, `+INJECT_BUG`.
+1. New Project → RTL Project → skip adding sources → pick any part (never synthesized).
+2. Sources panel → right-click **Simulation Sources** → Add Sources → add all 5 files
+   from `rtl/` and `tb/`. Right-click the fileset → **Update Compile Order** (the tracker,
+   assertions, and coverage modules all `import q_channel_pkg::*;`, so the package must
+   compile first).
+3. Right-click `tb_top` → **Set as Top**.
+4. Simulation Settings → Simulation tab → set `xsim.simulate.runtime` to `-all` (otherwise
+   it stops at the default 1000 ns and never reaches `$finish`).
+5. For functional coverage, add to `xsim.simulate.xsim.more_options`:
+   `-cov_db_name q_channel_cov -cov_db_dir cov`
+6. To change the transaction count, add to the same field:
+   `-testplusarg NUM_TXNS=<n>` (default 20 if not set).
+7. Run Simulation → Run Behavioral Simulation.
 
-Verilator 5.020 does not support covergroups, so `make verilator` compiles with
-`+define+NO_COVERAGE`. The coverage file was checked for syntax/elaboration with
-[slang](https://github.com/MikePopoloski/slang) (0 diagnostics) but its bin counts need a
-simulator with covergroup support (Questa, VCS, Xcelium).
+The tracker's log lands in `<project>.sim/sim_1/behav/xsim/q_channel_tracker.log`, not the
+project root. The `$finish` summary and the `[COVERAGE] ... = 100.00%` line print to the
+Tcl Console.
 
 ## Results
 
-All numbers below came from real runs (`make verify`, `make bug`, and a 20-seed regression),
-not estimates. Raw data: `docs/verification_results.json`.
+All numbers below are from real Vivado xsim runs, independently verified (`grep -c ILLEGAL` on the
+actual log files, not just trusting the console summary).
 
-- **Regression:** 20 random seeds × 100 transactions each (2,000 transactions) on legal
-  traffic → **0 assertion failures**.
-- **Log accuracy, cross-checked against the raw waveform:** `scripts/verify_against_vcd.py`
-  independently recomputes, from the VCD alone, which signals changed at every clock edge and
-  which state transitions are legal — without using the RTL's own logic — then diffs that
-  against the tracker's log.
-  - **50/50 signal-change events** matched the waveform exactly (100%).
-  - **32/32 logged state transitions** were correctly classified legal/illegal.
-- **Bug injection (`+INJECT_BUG`):** assertion `A1` fires and the tracker logs
-  `Q_REQUEST -> Q_ILLEGAL *** ILLEGAL TRANSITION ***`, confirming both the checker and the
-  tracker catch a real protocol violation.
+**Run 1 — 500 transactions:**
+```
+Requests accepted : 335
+Requests denied   : 165
+SVA failures      : 0
+Result            : PASS
+[COVERAGE] Q-Channel functional coverage = 100.00%
+$finish called at time : 77585 ns
+```
 
-`docs/waveform_vs_log.png` — the waveform this was checked against (accept path, then deny path):
+**Run 2 — 150 transactions, with waveform and full log captured:**
+```
+Requests accepted : 104
+Requests denied   : 46
+SVA failures      : 0
+Result            : PASS
+[COVERAGE] Q-Channel functional coverage = 100.00%
+$finish called at time : 23475 ns
+```
+- Full log for this run has 600 logged state transitions, **0 marked ILLEGAL**
+  (`docs/vivado_tracker_150txn.log`).
+- Waveform screenshot (`docs/vivado_waveform_screenshot.png`) shows the controller FSM cycling
+  `C_IDLE → C_WAIT_RESP → C_HOLD → C_WAIT_RUN` in lockstep with `QREQn`/`QACCEPTn`/`QDENY`, with
+  `sva_fail_count` flat at 0 throughout.
 
-![waveform vs log](docs/waveform_vs_log.png)
+Console output for both runs: `docs/vivado_console_output.txt`.
 
-`docs/sample_tracker_pass.log` (legal traffic):
+![Vivado waveform](docs/vivado_waveform_screenshot.png)
+
+`docs/vivado_tracker_150txn.log` excerpt:
 
 ```
 |       Time | Signal    | New value                 | Direction / Check          |
-|      45 ns | QREQn     | 0                         | Controller -> Device       |
-|      45 ns | STATE     | Q_RUN -> Q_REQUEST        | OK                         |
-|      85 ns | QACCEPTn  | 0                         | Device -> Controller       |
-|      85 ns | STATE     | Q_REQUEST -> Q_STOPPED    | OK                         |
+|      55 ns | QREQn     | 0                         | Controller -> Device       |
+|      55 ns | STATE     | Q_RUN -> Q_REQUEST        | OK                         |
+|     105 ns | QDENY     | 1                         | Device -> Controller       |
+|     105 ns | STATE     | Q_REQUEST -> Q_DENIED     | OK                         |
 ```
 
-`docs/sample_tracker_bug.log` (`+INJECT_BUG`): the tracker prints
-`Q_REQUEST -> Q_ILLEGAL  *** ILLEGAL TRANSITION ***` and assertion A1 fires.
+With `+INJECT_BUG` (set via `-testplusarg INJECT_BUG`), the device is forced to accept and deny
+in the same cycle on the 3rd transaction. The tracker then prints
+`Q_REQUEST -> Q_ILLEGAL  *** ILLEGAL TRANSITION ***` in its log, and assertion A1 fires in the Tcl
+Console — confirming both the checker and the tracker catch a real protocol violation.
 
-## A race I found and fixed along the way
+## A kernel crash I found and fixed
+
+The first version of the tracker used small helper `task automatic`s (`check_signal` calling
+`log_row`) and the enum's built-in `.name()` method inside `$sformatf`. That crashed Vivado's
+xsim kernel outright (`FATAL_ERROR`, unrecoverable) a few nanoseconds into simulation, inside
+the tracker's own `always` block. The fix was to flatten the logic — inline every `$fdisplay`
+directly in the `always` block instead of nesting task calls, and replace `.name()` with a
+plain `case`-based `state_name()` function in the package. This turned out to be a simulator
+compatibility issue, not a logic bug — a reminder that constructs one tool accepts can crash
+another.
+
+## A race I found and fixed
 
 The controller and device were first written as procedural `initial ... forever @(posedge clk)`
-loops using `<= #1` to drive signals. That fixed an earlier problem (Verilator running `<=`
-inside `initial` blocks as effectively blocking), but it introduced a subtler one: two
-independent `#1`-delayed updates from different processes could land close enough together
-that a response occasionally fell in the *same* clock-edge sampling window as the request that
-caused it. The tracker faithfully logged what it saw — a direct `Q_DENIED -> Q_RUN` skipping
-`Q_CONTINUE` — and correctly flagged it as illegal, since it never happened as two separate
-sampled edges. Across 10 seeds × 200 transactions, this hit **25% of legal request cycles**
-(45–68 false "illegal" flags per run).
+loops using `<= #1` to drive signals. That introduced a subtle race: two independent
+`#1`-delayed updates from different processes could land close enough together that a response
+occasionally fell in the *same* clock-edge sampling window as the request that caused it. The
+tracker faithfully logged what it saw — a direct `Q_DENIED -> Q_RUN` skipping `Q_CONTINUE` — and
+correctly flagged it as illegal, since it never happened as two separate sampled edges. This hit
+roughly a quarter of legal request cycles before it was fixed.
 
 The fix was to rewrite both drivers as single synchronous `always @(posedge clk)` blocks using
 plain nonblocking assignments (no `#delay`), with waiting done via internal counters instead of
 procedural `@(posedge clk)` loops. Under standard Verilog scheduling, a signal driven by NBA on
 edge *N* is only visible to other processes starting at edge *N+1*, never within edge *N* itself
-— so a response can never again land in the same window as its trigger. Re-running the same
-20-seed regression afterward gave 0 false illegal transitions.
+— so a response can never land in the same window as its trigger again.
 
 ## About the timestamps
 

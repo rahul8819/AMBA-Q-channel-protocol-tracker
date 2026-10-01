@@ -131,7 +131,7 @@ in the same cycle on the 3rd transaction. The tracker then prints
 `Q_REQUEST -> Q_ILLEGAL  *** ILLEGAL TRANSITION ***` in its log, and assertion A1 fires in the Tcl
 Console — confirming both the checker and the tracker catch a real protocol violation.
 
-## A kernel crash I found and fixed
+## A kernel crash which was found and fixed
 
 The first version of the tracker used small helper `task automatic`s (`check_signal` calling
 `log_row`) and the enum's built-in `.name()` method inside `$sformatf`. That crashed Vivado's
@@ -142,7 +142,7 @@ plain `case`-based `state_name()` function in the package. This turned out to be
 compatibility issue, not a logic bug — a reminder that constructs one tool accepts can crash
 another.
 
-## A race I found and fixed
+## A race which was found and fixed
 
 The controller and device were first written as procedural `initial ... forever @(posedge clk)`
 loops using `<= #1` to drive signals. That introduced a subtle race: two independent

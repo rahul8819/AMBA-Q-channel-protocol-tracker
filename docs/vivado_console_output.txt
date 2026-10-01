@@ -1,0 +1,46 @@
+Vivado Simulator v2024.1 (xsim), Windows
+Command: launch_simulation
+Plusarg: +NUM_TXNS=500 (via xsim.simulate.xsim.more_options: -testplusarg NUM_TXNS=500)
+
+INFO: [Vivado 12-5682] Launching behavioral simulation in
+  'D:/Xilinx/q_channel_project/q_channel_project.sim/sim_1/behav/xsim'
+"xvlog --incr --relax -L uvm -prj tb_top_vlog.prj"
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file ".../q_channel_assertions.sv" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module q_channel_assertions
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file ".../q_channel_pkg.sv" into library xil_defaultlib
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file ".../q_channel_coverage.sv" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module q_channel_coverage
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file ".../q_channel_tracker.sv" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module q_channel_tracker
+INFO: [VRFC 10-2263] Analyzing SystemVerilog file ".../tb_top.sv" into library xil_defaultlib
+INFO: [VRFC 10-311] analyzing module tb_top
+INFO: [USF-XSim-69] 'compile' step finished in '2' seconds
+
+"xelab --incr --debug typical --relax --mt 2 -L xil_defaultlib -L uvm -L unisims_ver
+  -L unimacro_ver -L secureip --snapshot tb_top_behav xil_defaultlib.tb_top
+  xil_defaultlib.glbl -log elaborate.log"
+Compiling package xil_defaultlib.q_channel_pkg
+Compiling module xil_defaultlib.q_channel_assertions
+Compiling module xil_defaultlib.q_channel_tracker
+Compiling module xil_defaultlib.q_channel_coverage
+Compiling module xil_defaultlib.tb_top
+Compiling module xil_defaultlib.glbl
+Built simulation snapshot tb_top_behav
+INFO: [USF-XSim-69] 'elaborate' step finished in '5' seconds
+
+*** Running xsim with args "tb_top_behav -key {Behavioral:sim_1:Functional:tb_top}
+  -tclbatch {tb_top.tcl} -log {simulate.log} -testplusarg NUM_TXNS=500
+  -cov_db_name q_channel_cov -cov_db_dir cov"
+Time resolution is 1 ps
+
+# run all
+--------------------------------------------------
+Requests accepted : 335
+Requests denied   : 165
+SVA failures      : 0
+Result            : PASS
+--------------------------------------------------
+[COVERAGE] Q-Channel functional coverage = 100.00%
+$finish called at time : 77585 ns
+INFO: [USF-XSim-96] XSim completed. Design snapshot 'tb_top_behav' loaded.
+INFO: [USF-XSim-97] XSim simulation ran for -all

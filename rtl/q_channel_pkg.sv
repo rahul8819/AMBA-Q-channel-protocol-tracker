@@ -42,4 +42,19 @@ package q_channel_pkg;
            (from == Q_CONTINUE && to == Q_RUN     );
   endfunction
 
+  // Plain case-based name lookup, used instead of the built-in enum .name()
+  // method (kept separate in case a simulator handles .name() poorly when
+  // called from inside a task/always block).
+  function automatic string state_name(q_state_e s);
+    case (s)
+      Q_RUN:      return "Q_RUN";
+      Q_REQUEST:  return "Q_REQUEST";
+      Q_STOPPED:  return "Q_STOPPED";
+      Q_EXIT:     return "Q_EXIT";
+      Q_DENIED:   return "Q_DENIED";
+      Q_CONTINUE: return "Q_CONTINUE";
+      default:    return "Q_ILLEGAL";
+    endcase
+  endfunction
+
 endpackage

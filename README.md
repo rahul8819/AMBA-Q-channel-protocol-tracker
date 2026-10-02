@@ -58,6 +58,39 @@ Anything else is illegal.
 - **Scenarios**: request→accept and request→deny (allowing wait cycles in `Q_REQUEST`)
 - **Cross**: outcome (accepted / denied) × device busy / idle (`QACTIVE`)
 
+## Understanding `tb_top.sv`: protocol signals vs. testbench scaffolding
+
+The waveform viewer shows far more signals than the four in the protocol diagram above. That's
+because `tb_top.sv` invents two fake agents to generate realistic traffic -- there's no real
+controller or device chip to test against, so the testbench plays both roles itself.
+
+**Only these four are the actual protocol** (the ones the tracker, assertions, and coverage
+check): `qreqn`, `qacceptn`, `qdeny`, `qactive`.
+
+Everything else falls into one of these groups:
+
+| Group | Signals | What they are |
+|---|---|---|
+| Clock / reset | `clk`, `rst_n` | Standard simulation plumbing, not part of Q-Channel |
+| Test configuration | `num_txns`, `accept_pct`, `inject_bug` | Knobs read once at time 0 from plusargs |
+| **Controller FSM** (fake power manager) | `ctrl_state` (`C_IDLE`, `C_WAIT_RESP`, `C_HOLD`, `C_WAIT_RUN`), `ctrl_idle_cnt`, `ctrl_hold_cnt`, `txn_done` | A state machine this testbench invents to decide *when* to request, *how long* to wait, *when* to withdraw. `C_WAIT_RESP` is **not** the same thing as the protocol's `Q_REQUEST` -- it's the controller's own bookkeeping, not a Q-Channel state |
+| **Device FSM** (fake device) | `awaiting_resp`, `resp_cnt`, `txn_id` | A second invented agent that answers after a random delay; `txn_id` is only used to pick which transaction gets the injected bug |
+| Result counters | `accepted_cnt`, `denied_cnt` | Bookkeeping that feeds the final `$display` summary |
+| Checker output | `sva_fail_count` | Live failure count, output from `q_channel_assertions` |
+
+A useful mental model is three layers:
+
+1. **The protocol** -- the four wires and six `Q_*` states. This is what's actually being verified.
+2. **The fake traffic generators** -- `ctrl_state`/`C_*` and the device's `awaiting_resp`/`resp_cnt`/`txn_id`.
+   These exist only to *produce* realistic signal activity for layer 1 to be exercised against.
+3. **The scoreboard** -- `accepted_cnt`, `denied_cnt`, `sva_fail_count`, `txn_done`. These exist only to
+   *report* what happened.
+
+If you're reading the waveform and see `ctrl_state == C_WAIT_RESP`, that's the testbench's own driver
+logic signaling "I'm waiting for an answer" -- it happens to roughly track the protocol being in
+`Q_REQUEST`, but it is a separate signal with a separate name, declared in `tb_top.sv`, not in the
+protocol package.
+
 ## Running in Vivado (xsim)
 
 The five files in `rtl/` and `tb/` are simulation-only (they use `$display`, SVA, and

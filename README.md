@@ -87,17 +87,8 @@ Tcl Console.
 All numbers below are from real Vivado xsim runs, independently verified (`grep -c ILLEGAL` on the
 actual log files, not just trusting the console summary).
 
-**Run 1 — 500 transactions:**
-```
-Requests accepted : 335
-Requests denied   : 165
-SVA failures      : 0
-Result            : PASS
-[COVERAGE] Q-Channel functional coverage = 100.00%
-$finish called at time : 77585 ns
-```
 
-**Run 2 — 150 transactions, with waveform and full log captured:**
+**Run 1 — 150 transactions, with waveform and full log captured:**
 ```
 Requests accepted : 104
 Requests denied   : 46
@@ -126,7 +117,7 @@ Console output for both runs: `docs/vivado_console_output.txt`.
 |     105 ns | STATE     | Q_REQUEST -> Q_DENIED     | OK                         |
 ```
 
-**Run 3 — bug injection (`-testplusarg INJECT_BUG -testplusarg NUM_TXNS=150`):**
+**Run 2 — bug injection (`-testplusarg INJECT_BUG -testplusarg NUM_TXNS=150`):**
 
 The device is forced to accept and deny in the same cycle on the 3rd transaction. Real result:
 
@@ -162,7 +153,7 @@ recovering afterward: `docs/vivado_bug_injection_waveform.png`.
 This confirms both the SVA checker and the tracker correctly detect a real protocol violation,
 rather than only ever reporting clean runs.
 
-## A kernel crash I found and fixed
+## A kernel crash which was found and fixed
 
 The first version of the tracker used small helper `task automatic`s (`check_signal` calling
 `log_row`) and the enum's built-in `.name()` method inside `$sformatf`. That crashed Vivado's
@@ -173,7 +164,7 @@ plain `case`-based `state_name()` function in the package. This turned out to be
 compatibility issue, not a logic bug — a reminder that constructs one tool accepts can crash
 another.
 
-## A race I found and fixed
+## A race which was found and fixed
 
 The controller and device were first written as procedural `initial ... forever @(posedge clk)`
 loops using `<= #1` to drive signals. That introduced a subtle race: two independent

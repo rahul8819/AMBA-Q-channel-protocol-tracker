@@ -1,16 +1,6 @@
 {
   "simulator": "Xilinx Vivado 2024.1 (xsim)",
-  "runs": [
-    {
-      "num_txns": 500,
-      "accepted": 335,
-      "denied": 165,
-      "sva_failures": 0,
-      "functional_coverage_pct": 100.0,
-      "finish_time_ns": 77585,
-      "illegal_transitions_in_log": 0,
-      "note": "Console summary only; full log reviewed manually, 0 ILLEGAL found."
-    },
+  "runs": 
     {
       "num_txns": 150,
       "accepted": 104,
@@ -23,5 +13,20 @@
       "note": "Full tracker log (docs/vivado_tracker_150txn.log) verified programmatically: grep -c ILLEGAL = 0.",
       "waveform_screenshot": "docs/vivado_waveform_screenshot.png"
     }
-  ]
+  ,
+  "bug_injection_run": {
+    "plusargs": "-testplusarg INJECT_BUG -testplusarg NUM_TXNS=150",
+    "accepted": 104,
+    "denied": 45,
+    "sva_failures": 4,
+    "result": "FAIL (expected -- confirms the checker catches real violations)",
+    "functional_coverage_pct": 100.0,
+    "finish_time_ns": 23485,
+    "illegal_bin_hit_count": 4,
+    "tracker_illegal_transitions_logged": 2,
+    "note": "The forced QACCEPTn=0 & QDENY=1 condition holds for 4 clock cycles, so A1 and the illegal covergroup bin fire once per cycle (4x), while the tracker -- which only logs on a state CHANGE -- logs exactly 2 rows: entering Q_ILLEGAL and leaving it.",
+    "console_output": "docs/vivado_bug_injection_console.txt",
+    "tracker_log": "docs/vivado_tracker_bug_injection.log",
+    "waveform_screenshot": "docs/vivado_bug_injection_waveform.png"
+  }
 }

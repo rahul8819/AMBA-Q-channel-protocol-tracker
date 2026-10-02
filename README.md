@@ -126,12 +126,43 @@ Console output for both runs: `docs/vivado_console_output.txt`.
 |     105 ns | STATE     | Q_REQUEST -> Q_DENIED     | OK                         |
 ```
 
-With `+INJECT_BUG` (set via `-testplusarg INJECT_BUG`), the device is forced to accept and deny
-in the same cycle on the 3rd transaction. The tracker then prints
-`Q_REQUEST -> Q_ILLEGAL  *** ILLEGAL TRANSITION ***` in its log, and assertion A1 fires in the Tcl
-Console — confirming both the checker and the tracker catch a real protocol violation.
+**Run 3 — bug injection (`-testplusarg INJECT_BUG -testplusarg NUM_TXNS=150`):**
 
-## A kernel crash which was found and fixed
+The device is forced to accept and deny in the same cycle on the 3rd transaction. Real result:
+
+```
+ERROR: Illegal bin value = '6' in bin 'illegal' of coverpoint 'cp_state' ... (x4, times 445-475 ns)
+Error: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle                  (x4)
+--------------------------------------------------
+Requests accepted : 104
+Requests denied   : 45
+SVA failures      : 4
+Result            : FAIL
+--------------------------------------------------
+[COVERAGE] Q-Channel functional coverage = 100.00%
+$finish called at time : 23485 ns
+```
+
+The forced condition holds for 4 clock cycles, so assertion A1 and the covergroup's `illegal_bins`
+both fire once per cycle (4x). The tracker — which only logs on a state *change*, not every
+cycle — logs exactly 2 rows for this: entering `Q_ILLEGAL` and leaving it:
+
+```
+|     445 ns | STATE     | Q_REQUEST -> Q_ILLEGAL    | *** ILLEGAL TRANSITION ***  |
+|     485 ns | STATE     | Q_ILLEGAL -> Q_CONTINUE   | *** ILLEGAL TRANSITION ***  |
+```
+
+Full console output: `docs/vivado_bug_injection_console.txt`. Full tracker log (1,667 lines,
+exactly 2 `ILLEGAL TRANSITION` rows, independently grep-verified):
+`docs/vivado_tracker_bug_injection.log`. Waveform screenshot showing `inject_bug=1` and the FSM
+recovering afterward: `docs/vivado_bug_injection_waveform.png`.
+
+![Vivado bug injection waveform](docs/vivado_bug_injection_waveform.png)
+
+This confirms both the SVA checker and the tracker correctly detect a real protocol violation,
+rather than only ever reporting clean runs.
+
+## A kernel crash I found and fixed
 
 The first version of the tracker used small helper `task automatic`s (`check_signal` calling
 `log_row`) and the enum's built-in `.name()` method inside `$sformatf`. That crashed Vivado's
@@ -142,7 +173,7 @@ plain `case`-based `state_name()` function in the package. This turned out to be
 compatibility issue, not a logic bug — a reminder that constructs one tool accepts can crash
 another.
 
-## A race which was found and fixed
+## A race I found and fixed
 
 The controller and device were first written as procedural `initial ... forever @(posedge clk)`
 loops using `<= #1` to drive signals. That introduced a subtle race: two independent

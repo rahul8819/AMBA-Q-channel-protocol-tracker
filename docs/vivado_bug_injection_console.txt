@@ -1,0 +1,45 @@
+Vivado Simulator v2024.1 (xsim), Windows
+Command: launch_simulation
+Plusargs: -testplusarg INJECT_BUG -testplusarg NUM_TXNS=150
+
+INFO: [Vivado 12-5682] Launching behavioral simulation in
+  'D:/Xilinx/q_channel_project/q_channel_project.sim/sim_1/behav/xsim'
+"xvlog --incr --relax -L uvm -prj tb_top_vlog.prj"
+INFO: [USF-XSim-69] 'compile' step finished in '2' seconds
+"xelab --incr --debug typical --relax --mt 2 -L xil_defaultlib -L uvm -L unisims_ver
+  -L unimacro_ver -L secureip --snapshot tb_top_behav xil_defaultlib.tb_top
+  xil_defaultlib.glbl -log elaborate.log"
+INFO: [USF-XSim-69] 'elaborate' step finished in '1' seconds
+
+*** Running xsim with args "tb_top_behav -key {Behavioral:sim_1:Functional:tb_top}
+  -tclbatch {tb_top.tcl} -log {simulate.log} -testplusarg INJECT_BUG
+  -testplusarg NUM_TXNS=150 -cov_db_name q_channel_cov -cov_db_dir cov"
+Time resolution is 1 ps
+
+# run all
+ERROR: For covergroup Instance 'cg' of covergroup 'tb_top.coverage::cg_q_channel', Illegal bin
+  value = '6' in bin 'illegal' of coverpoint 'cp_state' was hit while sampling. The bin counter
+  for the illegal bin 'illegal' is "1".
+Time: 445 ns Scope: /tb_top/checker_sva File: q_channel_assertions.sv Line:32
+Error: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+Time: 445 ns  Scope: tb_top.checker_sva.report_fail  File: q_channel_assertions.sv Line: 23
+
+ERROR: ... illegal bin 'illegal' is "2".
+Time: 455 ns ... Error: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+
+ERROR: ... illegal bin 'illegal' is "3".
+Time: 465 ns ... Error: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+
+ERROR: ... illegal bin 'illegal' is "4".
+Time: 475 ns ... Error: [SVA] A1 failed: QACCEPTn low and QDENY high in the same cycle
+
+--------------------------------------------------
+Requests accepted : 104
+Requests denied   : 45
+SVA failures      : 4
+Result            : FAIL
+--------------------------------------------------
+[COVERAGE] Q-Channel functional coverage = 100.00%
+$finish called at time : 23485 ns
+INFO: [USF-XSim-96] XSim completed. Design snapshot 'tb_top_behav' loaded.
+INFO: [USF-XSim-97] XSim simulation ran for -all

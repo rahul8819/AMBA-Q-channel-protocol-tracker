@@ -120,7 +120,6 @@ Tcl Console.
 All numbers below are from real Vivado xsim runs, independently verified (`grep -c ILLEGAL` on the
 actual log files, not just trusting the console summary).
 
-
 **Run 1 — 150 transactions, with waveform and full log captured:**
 ```
 Requests accepted : 104
@@ -135,6 +134,8 @@ $finish called at time : 23475 ns
 - Waveform screenshot (`docs/vivado_waveform_screenshot.png`) shows the controller FSM cycling
   `C_IDLE → C_WAIT_RESP → C_HOLD → C_WAIT_RUN` in lockstep with `QREQn`/`QACCEPTn`/`QDENY`, with
   `sva_fail_count` flat at 0 throughout.
+- **Full functional coverage report (per-coverpoint, per-bin breakdown):**
+  [docs/coverage_report_pass/dashboard.html](https://rahul8819.github.io/AMBA-Q-channel-protocol-tracker/coverage_report_pass/dashboard.html)
 
 Console output for both runs: `docs/vivado_console_output.txt`.
 
@@ -179,14 +180,15 @@ cycle — logs exactly 2 rows for this: entering `Q_ILLEGAL` and leaving it:
 Full console output: `docs/vivado_bug_injection_console.txt`. Full tracker log (1,667 lines,
 exactly 2 `ILLEGAL TRANSITION` rows, independently grep-verified):
 `docs/vivado_tracker_bug_injection.log`. Waveform screenshot showing `inject_bug=1` and the FSM
-recovering afterward: `docs/vivado_bug_injection_waveform.png`.
+recovering afterward: `docs/vivado_bug_injection_waveform.png`. Full functional coverage report
+for this run: [docs/coverage_report_error_injection/dashboard.html](https://rahul8819.github.io/AMBA-Q-channel-protocol-tracker/coverage_report_error_injection/dashboard.html)
 
 ![Vivado bug injection waveform](docs/vivado_bug_injection_waveform.png)
 
 This confirms both the SVA checker and the tracker correctly detect a real protocol violation,
 rather than only ever reporting clean runs.
 
-## A kernel crash which was found and fixed
+## A kernel crash I found and fixed
 
 The first version of the tracker used small helper `task automatic`s (`check_signal` calling
 `log_row`) and the enum's built-in `.name()` method inside `$sformatf`. That crashed Vivado's
@@ -197,7 +199,7 @@ plain `case`-based `state_name()` function in the package. This turned out to be
 compatibility issue, not a logic bug — a reminder that constructs one tool accepts can crash
 another.
 
-## A race which was found and fixed
+## A race I found and fixed
 
 The controller and device were first written as procedural `initial ... forever @(posedge clk)`
 loops using `<= #1` to drive signals. That introduced a subtle race: two independent
